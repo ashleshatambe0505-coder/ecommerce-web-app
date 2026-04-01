@@ -5,7 +5,7 @@ import { savePaymentMethod } from '../slices/cartSlice';
 import CheckoutSteps from '../components/CheckoutSteps';
 
 const PaymentScreen = () => {
-  const [paymentMethod, setPaymentMethod] = useState('Stripe');
+  const [paymentMethod, setPaymentMethod] = useState('UPI');
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -37,14 +37,14 @@ const PaymentScreen = () => {
               <input
                 type="radio"
                 className="w-5 h-5 text-gray-900 border-gray-300 focus:ring-gray-900"
-                id="Stripe"
+                id="UPI"
                 name="paymentMethod"
-                value="Stripe"
+                value="UPI"
                 checked
                 onChange={(e) => setPaymentMethod(e.target.value)}
               />
-              <label htmlFor="Stripe" className="ml-3 block text-gray-800 font-bold">
-                Stripe or Credit Card
+              <label htmlFor="UPI" className="ml-3 block text-gray-800 font-bold">
+                Mock UPI Simulator
               </label>
             </div>
             {/* Can add Paypal here as well */}

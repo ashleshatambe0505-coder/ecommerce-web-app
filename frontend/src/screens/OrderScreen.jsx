@@ -1,10 +1,40 @@
 import { useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useGetOrderDetailsQuery } from '../slices/ordersApiSlice';
+import { useGetOrderDetailsQuery, usePayOrderMutation, useDeliverOrderMutation } from '../slices/ordersApiSlice';
+import { useSelector } from 'react-redux';
 
 const OrderScreen = () => {
   const { id: orderId } = useParams();
-  const { data: order, isLoading, error } = useGetOrderDetailsQuery(orderId);
+  const { data: order, refetch, isLoading, error } = useGetOrderDetailsQuery(orderId);
+  const [payOrder, { isLoading: isPaying, error: payError }] = usePayOrderMutation();
+  const [deliverOrder, { isLoading: loadingDeliver }] = useDeliverOrderMutation();
+  const { userInfo } = useSelector((state) => state.auth);
+
+  const handleUpiPayment = async () => {
+    try {
+      await payOrder({
+        orderId,
+        details: {
+          id: 'mock_upi_' + Date.now().toString(),
+          status: 'succeeded',
+          update_time: new Date().toISOString(),
+          receipt_email: order.user.email,
+        },
+      }).unwrap();
+      refetch();
+    } catch (err) {
+      console.error('Payment failed:', err);
+    }
+  };
+
+  const deliverHandler = async () => {
+    try {
+      await deliverOrder(orderId).unwrap();
+      refetch();
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   if (isLoading) return <div className="text-center mt-10">Loading Order...</div>;
   if (error) return <div className="text-center mt-10 text-red-500">{error.data?.message || error.error}</div>;
@@ -39,7 +69,7 @@ const OrderScreen = () => {
             {order.isPaid ? (
               <div className="bg-green-100 text-green-800 px-4 py-3 rounded border border-green-200">Paid on {order.paidAt}</div>
             ) : (
-              <div className="bg-red-100 text-red-800 px-4 py-3 rounded border border-red-200">Not Paid (Awaiting Integration)</div>
+              <div className="bg-red-100 text-red-800 px-4 py-3 rounded border border-red-200">Not Paid</div>
             )}
           </div>
 
@@ -70,9 +100,32 @@ const OrderScreen = () => {
               <div className="flex justify-between border-b pb-3"><span className="text-gray-600">Tax:</span> <span className="font-semibold">${order.taxPrice}</span></div>
               <div className="flex justify-between items-center text-lg"><span className="font-bold text-gray-900">Total:</span> <span className="font-bold text-gray-900">${order.totalPrice}</span></div>
             </div>
-            {/* Payment buttons can be added here */}
+            
             {!order.isPaid && (
-               <button className="w-full bg-blue-600 text-white font-bold py-3 rounded text-center cursor-not-allowed opacity-50">Stripe Integration TBD</button>
+              <div className="mt-4">
+                <button
+                  type="button"
+                  className="w-full bg-blue-600 text-white font-bold py-3 rounded text-center hover:bg-blue-700 transition"
+                  onClick={handleUpiPayment}
+                  disabled={isPaying}
+                >
+                  {isPaying ? 'Processing Payment...' : 'Complete Mock UPI Payment'}
+                </button>
+                {payError && <div className="text-red-500 font-bold mt-2 text-center">{payError?.data?.message || payError?.error || 'Failed to update order status!'}</div>}
+              </div>
+            )}
+            
+            {userInfo && userInfo.isAdmin && order.isPaid && !order.isDelivered && (
+              <div className="mt-4">
+                <button
+                  type="button"
+                  className="w-full bg-gray-900 text-white font-bold py-3 rounded text-center hover:bg-gray-800 transition"
+                  onClick={deliverHandler}
+                  disabled={loadingDeliver}
+                >
+                  {loadingDeliver ? 'Marking as Delivered...' : 'Mark As Delivered'}
+                </button>
+              </div>
             )}
           </div>
         </div>

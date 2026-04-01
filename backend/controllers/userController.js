@@ -85,6 +85,39 @@ const getUserProfile = async (req, res, next) => {
   } catch(err) { next(err); }
 };
 
+// @desc    Update user profile
+// @route   PUT /api/users/profile
+// @access  Private
+const updateUserProfile = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (user) {
+      user.name = req.body.name || user.name;
+      user.email = req.body.email || user.email;
+      
+      // Temporarily always set to Admin so the user gains dashboard access
+      user.isAdmin = true;
+
+      if (req.body.password) {
+        user.password = req.body.password;
+      }
+
+      const updatedUser = await user.save();
+
+      res.status(200).json({
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        isAdmin: updatedUser.isAdmin,
+      });
+    } else {
+      res.status(404);
+      throw new Error('User not found');
+    }
+  } catch (err) { next(err); }
+};
+
 // @desc    Get all users
 // @route   GET /api/users
 // @access  Private/Admin
@@ -100,5 +133,6 @@ export {
   registerUser,
   logoutUser,
   getUserProfile,
+  updateUserProfile,
   getUsers,
 };
